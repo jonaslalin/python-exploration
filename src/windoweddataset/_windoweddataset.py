@@ -7,17 +7,18 @@ if sys.version_info < (3, 9):
 else:
     from collections.abc import Sequence
 
+
 TItem = TypeVar("TItem")
 
 
 @dataclass(init=False)
 class WindowedDataset(Sequence[Sequence[TItem]]):
-    dataset: Sequence[TItem]
+    _items: Sequence[TItem]
     window_size: int
 
-    def __init__(self, dataset: Sequence[TItem], window_size: int = 1) -> None:
+    def __init__(self, items: Sequence[TItem], window_size: int = 1) -> None:
         assert window_size > 0
-        self.dataset = dataset
+        self._items = items
         self.window_size = window_size
 
     @overload
@@ -28,16 +29,24 @@ class WindowedDataset(Sequence[Sequence[TItem]]):
 
     def __getitem__(self, index: Union[int, slice]) -> Union[Sequence[TItem], Sequence[Sequence[TItem]]]:
         if isinstance(index, int):
-            dataset_start, dataset_stop = index * self.window_size, (index + 1) * self.window_size
-            window: Sequence[TItem] = self.dataset[dataset_start:dataset_stop]
+            if index >= len(self) or index < -len(self):
+                raise IndexError("Window index out of range")
+            window_index = index % len(self)
+            window = self._items[window_index * self.window_size : (window_index + 1) * self.window_size]
             return window
         elif isinstance(index, slice):
-            window_start, window_stop, window_step = index.start, index.stop, index.step
-            windows_idx = range(window_start, window_stop, window_step)
-            windows: Sequence[Sequence[TItem]] = tuple(self[window_idx] for window_idx in windows_idx)
+            window_start_index, window_stop_index, window_stride = index.indices(len(self))
+            windows = tuple(
+                self[window_index]
+                for window_index in range(
+                    window_start_index,
+                    window_stop_index,
+                    window_stride,
+                )
+            )
             return windows
         else:
-            raise TypeError(...)
+            raise TypeError("Only int and slice types are supported")
 
     def __len__(self) -> int:
-        return -(-len(self.dataset) // self.window_size)
+        return -(-len(self._items) // self.window_size)
