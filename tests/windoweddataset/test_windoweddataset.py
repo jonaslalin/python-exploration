@@ -51,6 +51,15 @@ def test_get_item_for_int(
     assert sample_windowed_dataset[window_index] == expected_window
 
 
+def test_git_item_for_int_raises_exceptions(sample_windowed_dataset: WindowedDataset[int]) -> None:
+    with pytest.raises(IndexError):
+        sample_windowed_dataset[7]
+    with pytest.raises(IndexError):
+        sample_windowed_dataset[-8]
+    with pytest.raises(TypeError):
+        sample_windowed_dataset[0:2, 5]  # type: ignore[call-overload]
+
+
 @pytest.mark.parametrize(
     ("window_slice", "expected_windows"),
     [

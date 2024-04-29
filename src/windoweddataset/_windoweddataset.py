@@ -1,5 +1,4 @@
 import sys
-from dataclasses import dataclass
 from typing import TypeVar, Union, overload
 
 if sys.version_info < (3, 9):
@@ -11,7 +10,6 @@ else:
 TItem = TypeVar("TItem")
 
 
-@dataclass(init=False)
 class WindowedDataset(Sequence[Sequence[TItem]]):
     _items: Sequence[TItem]
     window_size: int
